@@ -16,6 +16,7 @@
 		54EAAB4FAA63E130317EFBEE /* WindowTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B718FA1405017AF9EA1C26AB /* WindowTrackerTests.swift */; };
 		5CD40D8F503E753D10B91134 /* OverlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634555E2DFCE8A8F20752236 /* OverlayManager.swift */; };
 		6297828F85FDFA18E761BA43 /* PermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF541E22120F71ED3E86CC6 /* PermissionView.swift */; };
+		6D4271D0C9B432A6A9A605F3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5EA93105A92A191DC4E2EE29 /* Assets.xcassets */; };
 		7237C257F10AF11ED461396F /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7118099978951D48476FE6 /* PopoverView.swift */; };
 		7559E15DD257CA01F06DBC57 /* Protocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 575710DEA34D6A178AA928EA /* Protocols.swift */; };
 		8FDDE03D025CDA01BA6C18B4 /* WindowEnumeratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3340CB82741226EFD0F69B76 /* WindowEnumeratorTests.swift */; };
@@ -40,6 +41,7 @@
 		56DFA136DD574B53A79C94BB /* PreferencesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesManager.swift; sourceTree = "<group>"; };
 		575710DEA34D6A178AA928EA /* Protocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Protocols.swift; sourceTree = "<group>"; };
 		5BFF7BE0DB5C0A69D54FDFA0 /* OverlayManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayManagerTests.swift; sourceTree = "<group>"; };
+		5EA93105A92A191DC4E2EE29 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		634555E2DFCE8A8F20752236 /* OverlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayManager.swift; sourceTree = "<group>"; };
 		7E566DE1C144368C8EBAF4D0 /* DimApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimApp.swift; sourceTree = "<group>"; };
 		83B05A887779C885D24BC3CD /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -95,6 +97,7 @@
 		9AE35CBE597BCA19BE768D87 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				5EA93105A92A191DC4E2EE29 /* Assets.xcassets */,
 				C962660B5A5C37912BB1B2CB /* Info.plist */,
 			);
 			path = Resources;
@@ -168,6 +171,7 @@
 			buildConfigurationList = FBA825ABFBF1B6E1CB31BB18 /* Build configuration list for PBXNativeTarget "Dimsum" */;
 			buildPhases = (
 				DFD1CA8D3AA2D3AE3B26E21F /* Sources */,
+				55708D743FDE60BE6944301D /* Resources */,
 			);
 			buildRules = (
 			);
@@ -210,6 +214,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		55708D743FDE60BE6944301D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6D4271D0C9B432A6A9A605F3 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		9455542BA401D02531544121 /* Sources */ = {
