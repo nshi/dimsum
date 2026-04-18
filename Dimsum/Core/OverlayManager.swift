@@ -20,7 +20,6 @@ final class OverlayManager: OverlayManaging {
 
     func orderBehind(windowID: CGWindowID, intensity: Double, animated: Bool) {
         guard let targetDisplay = displayContaining(windowID: windowID) else {
-            hideAllOverlays()
             return
         }
 

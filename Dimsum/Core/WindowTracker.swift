@@ -133,14 +133,14 @@ final class WindowTracker: WindowTracking {
         if result == .success, let focusedWindow {
             let axWindow = focusedWindow as! AXUIElement
             if let position = axPosition(of: axWindow),
-               let size = axSize(of: axWindow) {
-                let windowID = findWindowID(pid: pid, position: position, size: size)
+               let size = axSize(of: axWindow),
+               let windowID = findWindowID(pid: pid, position: position, size: size) {
                 delegate?.focusedWindowDidChange(to: windowID)
                 return
             }
         }
 
-        // AX failed (e.g. Electron apps return kAXErrorCannotComplete).
+        // AX failed or the window isn't in the CG list yet (e.g. just created).
         // Fall back to the frontmost CG window for this PID.
         let fallbackID = windowEnumerator.visibleWindows()
             .first { $0.ownerPID == pid }?.windowID

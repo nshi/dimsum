@@ -261,11 +261,11 @@ extension AppDelegate: WindowTrackerDelegate {
         guard windowID != currentFocusedWindowID else { return }
         currentFocusedWindowID = windowID
         guard !isTransitioningSpaces else { return }
-        orderBehindFocusedWindow()
 
         reorderWork?.cancel()
         retryWork?.cancel()
         if let windowID {
+            orderBehindFocusedWindow()
             // Re-order after the window server finishes its activation animation,
             // ensuring the overlay lands directly behind the focused window.
             let work = DispatchWorkItem { [weak self] in
@@ -275,11 +275,13 @@ extension AppDelegate: WindowTrackerDelegate {
             reorderWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: work)
         } else {
-            // Window ID resolution can fail during Mission Control transitions.
-            // Retry after animation settles.
+            // Window may not be in CG list yet; retry, then hide if still unresolved.
             let work = DispatchWorkItem { [weak self] in
                 guard let self, self.currentFocusedWindowID == nil else { return }
                 self.windowTracker?.refreshFocusedWindow()
+                if self.currentFocusedWindowID == nil {
+                    self.overlayManager.hideAllOverlays()
+                }
             }
             retryWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
