@@ -18,6 +18,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var spaceTransitionWork: DispatchWorkItem?
     private var reorderWork: DispatchWorkItem?
     private var retryWork: DispatchWorkItem?
+    private var appearanceTransitionWork: DispatchWorkItem?
+    private var appearanceObservation: NSKeyValueObservation?
+
+    private var isDarkMode: Bool {
+        NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    }
+
+    private var currentAdaptedIntensity: Double {
+        adaptedIntensity(base: preferences.dimmingIntensity, isDarkMode: isDarkMode)
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
@@ -129,7 +139,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             overlayManager.orderBehind(
                 windowID: windowID,
-                intensity: preferences.dimmingIntensity,
+                intensity: currentAdaptedIntensity,
                 animated: true
             )
         } else {
@@ -160,8 +170,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         preferences.$dimmingIntensity
             .dropFirst()
             .debounce(for: .milliseconds(50), scheduler: RunLoop.main)
-            .sink { [weak self] newValue in
-                self?.overlayManager.updateIntensity(newValue, animated: false)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.overlayManager.updateIntensity(self.currentAdaptedIntensity, animated: false)
             }
             .store(in: &cancellables)
 
@@ -213,6 +224,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.orderBehindFocusedWindow()
         }
 
+        appearanceObservation = NSApp.observe(\.effectiveAppearance) { [weak self] _, _ in
+            guard let self else { return }
+            self.appearanceTransitionWork?.cancel()
+            let work = DispatchWorkItem { [weak self] in
+                guard let self, self.preferences.isDimmingEnabled else { return }
+                self.overlayManager.updateIntensity(self.currentAdaptedIntensity, animated: true)
+            }
+            self.appearanceTransitionWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: work)
+        }
+
         workspaceObservers = [spaceObserver]
         defaultObservers = [screenObserver]
     }
@@ -226,6 +248,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         workspaceObservers.removeAll()
         defaultObservers.removeAll()
+        appearanceObservation?.invalidate()
+        appearanceObservation = nil
+        appearanceTransitionWork?.cancel()
+        appearanceTransitionWork = nil
     }
 }
 

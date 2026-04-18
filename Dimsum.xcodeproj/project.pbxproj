@@ -18,7 +18,9 @@
 		6297828F85FDFA18E761BA43 /* PermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF541E22120F71ED3E86CC6 /* PermissionView.swift */; };
 		6D4271D0C9B432A6A9A605F3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5EA93105A92A191DC4E2EE29 /* Assets.xcassets */; };
 		7237C257F10AF11ED461396F /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7118099978951D48476FE6 /* PopoverView.swift */; };
+		728D22660DCD33DE293A847E /* AppearanceAware.swift in Sources */ = {isa = PBXBuildFile; fileRef = 897CD50BB5B9882396005AC5 /* AppearanceAware.swift */; };
 		7559E15DD257CA01F06DBC57 /* Protocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 575710DEA34D6A178AA928EA /* Protocols.swift */; };
+		76D91413B281CC4C5D8FD6BA /* AppearanceAwareTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCEEA6D198984C9C5904C8E7 /* AppearanceAwareTests.swift */; };
 		8FDDE03D025CDA01BA6C18B4 /* WindowEnumeratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3340CB82741226EFD0F69B76 /* WindowEnumeratorTests.swift */; };
 		FC61AA6E3E956F5C36C18BBE /* OverlayManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BFF7BE0DB5C0A69D54FDFA0 /* OverlayManagerTests.swift */; };
 		FC9541BB422E27CDB50734AD /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83B05A887779C885D24BC3CD /* AppDelegate.swift */; };
@@ -46,6 +48,7 @@
 		7E566DE1C144368C8EBAF4D0 /* DimApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimApp.swift; sourceTree = "<group>"; };
 		83B05A887779C885D24BC3CD /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		883519E165B45D0AA31028A8 /* PreferencesManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesManagerTests.swift; sourceTree = "<group>"; };
+		897CD50BB5B9882396005AC5 /* AppearanceAware.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceAware.swift; sourceTree = "<group>"; };
 		9F7C053D03956611E0124193 /* DimsumTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DimsumTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ACF541E22120F71ED3E86CC6 /* PermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionView.swift; sourceTree = "<group>"; };
 		B14BBBBDBA9F5547B4D3D421 /* WindowTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowTracker.swift; sourceTree = "<group>"; };
@@ -53,6 +56,7 @@
 		C1E7E387F184483E500989AD /* WindowEnumerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowEnumerator.swift; sourceTree = "<group>"; };
 		C962660B5A5C37912BB1B2CB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		CB7118099978951D48476FE6 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
+		FCEEA6D198984C9C5904C8E7 /* AppearanceAwareTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceAwareTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -68,6 +72,7 @@
 		81EDEF0AC0C42802A7DDEA7D /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				897CD50BB5B9882396005AC5 /* AppearanceAware.swift */,
 				634555E2DFCE8A8F20752236 /* OverlayManager.swift */,
 				575710DEA34D6A178AA928EA /* Protocols.swift */,
 				C1E7E387F184483E500989AD /* WindowEnumerator.swift */,
@@ -136,6 +141,7 @@
 		FD56B798EAED0E85CC524259 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				FCEEA6D198984C9C5904C8E7 /* AppearanceAwareTests.swift */,
 				5BFF7BE0DB5C0A69D54FDFA0 /* OverlayManagerTests.swift */,
 				883519E165B45D0AA31028A8 /* PreferencesManagerTests.swift */,
 				3340CB82741226EFD0F69B76 /* WindowEnumeratorTests.swift */,
@@ -231,6 +237,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				76D91413B281CC4C5D8FD6BA /* AppearanceAwareTests.swift in Sources */,
 				FC61AA6E3E956F5C36C18BBE /* OverlayManagerTests.swift in Sources */,
 				00E55369F930134160B6DF64 /* PreferencesManagerTests.swift in Sources */,
 				8FDDE03D025CDA01BA6C18B4 /* WindowEnumeratorTests.swift in Sources */,
@@ -243,6 +250,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FC9541BB422E27CDB50734AD /* AppDelegate.swift in Sources */,
+				728D22660DCD33DE293A847E /* AppearanceAware.swift in Sources */,
 				523ED90C9B6B4F38BFB8C35D /* DimApp.swift in Sources */,
 				5CD40D8F503E753D10B91134 /* OverlayManager.swift in Sources */,
 				6297828F85FDFA18E761BA43 /* PermissionView.swift in Sources */,
