@@ -7,6 +7,7 @@ final class WindowTracker: WindowTracking {
     private var appObserver: AXObserver?
     private var trackedPID: pid_t = 0
     private var workspaceObserver: NSObjectProtocol?
+    fileprivate var resolveWork: DispatchWorkItem?
     private let windowEnumerator: WindowEnumerating
 
     init(windowEnumerator: WindowEnumerating = WindowEnumerator()) {
@@ -68,6 +69,12 @@ final class WindowTracker: WindowTracking {
             kAXFocusedWindowChangedNotification as CFString,
             selfPtr
         )
+        AXObserverAddNotification(
+            obs,
+            appElement,
+            kAXWindowCreatedNotification as CFString,
+            selfPtr
+        )
 
         CFRunLoopAddSource(
             CFRunLoopGetMain(),
@@ -86,6 +93,11 @@ final class WindowTracker: WindowTracking {
                 obs,
                 appElement,
                 kAXFocusedWindowChangedNotification as CFString
+            )
+            AXObserverRemoveNotification(
+                obs,
+                appElement,
+                kAXWindowCreatedNotification as CFString
             )
             CFRunLoopRemoveSource(
                 CFRunLoopGetMain(),
@@ -183,7 +195,11 @@ private func axCallback(
 ) {
     guard let refcon else { return }
     let tracker = Unmanaged<WindowTracker>.fromOpaque(refcon).takeUnretainedValue()
-    DispatchQueue.main.async {
-        tracker.resolveFocusedWindow()
+    // Coalesce rapid-fire AX notifications into a single resolution pass.
+    tracker.resolveWork?.cancel()
+    let work = DispatchWorkItem { [weak tracker] in
+        tracker?.resolveFocusedWindow()
     }
+    tracker.resolveWork = work
+    DispatchQueue.main.async(execute: work)
 }
