@@ -203,7 +203,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             self.spaceTransitionWork?.cancel()
             self.isTransitioningSpaces = true
-            self.overlayManager.hideAllOverlays()
             let work = DispatchWorkItem { [weak self] in
                 guard let self else { return }
                 self.isTransitioningSpaces = false
