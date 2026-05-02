@@ -8,10 +8,39 @@ going. Keep your attention on what matters.
 ## Requirements
 
 - macOS 13 (Ventura) or later
+
+## Install
+
+Download the latest release straight to `/Applications` from the terminal. Fetching via `curl` avoids the `com.apple.quarantine` xattr that browsers attach, so Gatekeeper won't block the unsigned app on launch:
+
+```bash
+curl -L https://github.com/nshi/dimsum/releases/latest/download/Dimsum.zip -o /tmp/Dimsum.zip && unzip -o /tmp/Dimsum.zip -d /Applications && rm /tmp/Dimsum.zip && open /Applications/Dimsum.app
+```
+
+On first launch:
+
+1. A menu bar icon (a small dim sum steamer basket) appears. There is no Dock icon.
+2. macOS prompts for **Accessibility permission** — grant it in System Settings > Privacy & Security > Accessibility.
+3. Restart the app after granting permission. Dimming activates automatically.
+
+## Usage
+
+Click the menu bar icon to open the popover:
+
+- **Enable Dimming** — master on/off toggle. When off, all overlays are removed.
+- **Dimming Intensity** — slider from 0 (no dim) to 1 (fully black). Changes apply in real time.
+- **Start on Login** — registers the app as a login item so it launches automatically. Requires the app to be in `/Applications`.
+
+The app dims all unfocused windows across all displays. Switching focus (click, Cmd+Tab) animates overlays smoothly. Full-screen apps and Space transitions are handled automatically.
+
+## Development
+
+### Requirements
+
 - Xcode 15+ with Swift 5.9+
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) (for project generation)
 
-## Build
+### Build
 
 ```bash
 # Generate the Xcode project
@@ -24,24 +53,13 @@ xcodebuild -scheme Dimsum -configuration Debug build
 open Dimsum.xcodeproj
 ```
 
-## Run
+### Tests
 
-1. Build and run from Xcode (Cmd+R), or launch the built `.app` from DerivedData.
-2. A menu bar icon (half-filled circle) appears. There is no Dock icon.
-3. macOS prompts for **Accessibility permission** — grant it in System Settings > Privacy & Security > Accessibility.
-4. Restart the app after granting permission. Dimming activates automatically.
+```bash
+xcodebuild test -scheme Dimsum -destination 'platform=macOS'
+```
 
-## Usage
-
-Click the menu bar icon to open the popover:
-
-- **Enable Dimming** — master on/off toggle. When off, all overlays are removed.
-- **Dimming Intensity** — slider from 0 (no dim) to 1 (fully black). Changes apply in real time.
-- **Start on Login** — registers the app as a login item so it launches automatically. Requires the app to be in `/Applications`.
-
-The app dims all unfocused windows across all displays. Switching focus (click, Cmd+Tab) animates overlays smoothly. Full-screen apps and Space transitions are handled automatically.
-
-## Release Build
+### Release Build
 
 ```bash
 # Generate project (if not already done)
@@ -64,10 +82,4 @@ xcodebuild -exportArchive \
 
 To install, drag `build/release/Dimsum.app` into `/Applications`.
 
-> **Note:** The app is ad-hoc signed. macOS Gatekeeper may block it on first launch — right-click the app and choose "Open" to bypass.
-
-## Tests
-
-```bash
-xcodebuild test -scheme Dimsum -destination 'platform=macOS'
-```
+> **Note:** The app is ad-hoc signed. If you copied the `.app` from a browser download or another machine, macOS Gatekeeper may block it on first launch — either right-click the app and choose "Open" to bypass, or strip the quarantine attribute with `xattr -dr com.apple.quarantine /Applications/Dimsum.app`.
