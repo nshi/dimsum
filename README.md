@@ -1,6 +1,9 @@
 # Dimsum
 
-A macOS menu bar utility that dims unfocused windows, keeping your attention on what matters.
+Dimsum is a minimalist macOS menu bar utility designed to eliminate the cognitive load of
+tracking active focus in cluttered workspaces. By automatically dimming background windows,
+it provides an immediate visual feedback loop that confirms exatly where your keystrokes are
+going. Keep your attention on what matters.
 
 ## Requirements
 
