@@ -5,6 +5,8 @@ tracking active focus in cluttered workspaces. By automatically dimming backgrou
 it provides an immediate visual feedback loop that confirms exatly where your keystrokes are
 going. Keep your attention on what matters.
 
+<img width="640" height="471" alt="output-640" src="https://github.com/user-attachments/assets/3ff8f4fe-3a47-4f7f-a130-ceb18f4944ce" />
+
 ## Requirements
 
 - macOS 13 (Ventura) or later
