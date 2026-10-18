@@ -18,6 +18,8 @@ struct PopoverView: View {
 
             Toggle("Enable Dimming", isOn: $preferences.isDimmingEnabled)
                 .toggleStyle(.switch)
+                .accessibilityIdentifier("enableDimming")
+                .accessibilityLabel("Enable Dimming")
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Dimming Intensity")

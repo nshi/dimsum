@@ -80,12 +80,6 @@ private final class MockWindowTrackerDelegate: WindowTrackerDelegate {
     }
 }
 
-private struct StubWindowEnumerator: WindowEnumerating {
-    let windows: [WindowInfo]
-
-    func visibleWindows() -> [WindowInfo] { windows }
-}
-
 private struct FakeAccessibilityClient: AccessibilityClient {
     let result: AXError
 

@@ -15,7 +15,7 @@ protocol AccessibilityClient {
     ) -> AXError
 }
 
-protocol WindowTracking {
+protocol WindowTracking: AnyObject {
     var delegate: WindowTrackerDelegate? { get set }
     func startTracking() throws
     func stopTracking()

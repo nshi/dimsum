@@ -1,49 +1,41 @@
 import AppKit
-import Combine
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var statusItem: NSStatusItem!
-    private let popover = NSPopover()
-    private let preferences = PreferencesManager()
-    private var windowTracker: WindowTracker?
-    private let windowEnumerator = WindowEnumerator()
-    private let overlayManager = OverlayManager()
-    private var cancellables = Set<AnyCancellable>()
-    private var currentFocusedWindowID: CGWindowID?
-    private var accessibilityCheckTimer: Timer?
-    private var workspaceObservers: [NSObjectProtocol] = []
-    private var defaultObservers: [NSObjectProtocol] = []
-    private var isTransitioningSpaces = false
-    private var spaceTransitionWork: DispatchWorkItem?
-    private var reorderWork: DispatchWorkItem?
-    private var retryWork: DispatchWorkItem?
-    private var appearanceTransitionWork: DispatchWorkItem?
-    private var screenChangeWork: DispatchWorkItem?
-    private var appearanceObservation: NSKeyValueObservation?
+    private(set) var statusItem: NSStatusItem!
+    let popover = NSPopover()
+    private let controller: DimmingController
+    private var isTestHost = false
 
-    private var isDarkMode: Bool {
-        NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    override convenience init() {
+        self.init(controller: DimmingController(preferences: PreferencesManager()))
+        // Unit tests run inside this app. Keep its own instance idle so it can't
+        // dim or reorder windows underneath them.
+        isTestHost = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
 
-    private var currentAdaptedIntensity: Double {
-        adaptedIntensity(base: preferences.dimmingIntensity, isDarkMode: isDarkMode)
+    init(controller: DimmingController) {
+        self.controller = controller
+        super.init()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        guard !isTestHost else { return }
         setupStatusItem()
         setupPopover()
 
-        if AXIsProcessTrusted() {
-            enableDimming()
-        } else {
-            requestAccessibilityPermission()
+        controller.onPermissionNeeded = { [weak self] in
+            self?.showPermissionView()
         }
+        controller.onPermissionGranted = { [weak self] in
+            self?.popover.performClose(nil)
+            self?.setupPopover()
+        }
+        controller.start()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        accessibilityCheckTimer?.invalidate()
-        stopDimming()
+        controller.shutdown()
     }
 
     // MARK: - Status Bar
@@ -63,7 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.contentSize = NSSize(width: 280, height: 200)
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(
-            rootView: PopoverView(preferences: preferences)
+            rootView: PopoverView(preferences: controller.preferences)
         )
     }
 
@@ -76,253 +68,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func requestAccessibilityPermission() {
-        showPermissionView()
-        guard accessibilityCheckTimer == nil else { return }
-        startAccessibilityPolling()
-    }
-
     private func showPermissionView() {
         popover.contentViewController = NSHostingController(
             rootView: PermissionView()
         )
         if let button = statusItem.button {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        }
-    }
-
-    private func startAccessibilityPolling() {
-        accessibilityCheckTimer = Timer.scheduledTimer(
-            withTimeInterval: 1.0,
-            repeats: true
-        ) { [weak self] _ in
-            guard AXIsProcessTrusted() else { return }
-            self?.accessibilityCheckTimer?.invalidate()
-            self?.accessibilityCheckTimer = nil
-            self?.popover.performClose(nil)
-            self?.setupPopover()
-            self?.enableDimming()
-        }
-    }
-
-    // MARK: - Dimming Lifecycle
-
-    private func enableDimming() {
-        startDimming()
-        observePreferences()
-        observeSystemEvents()
-    }
-
-    private func startDimming() {
-        guard preferences.isDimmingEnabled else { return }
-        stopDimming()
-
-        // Assign state before starting: startTracking can report lost permission
-        // synchronously, and that handler must be able to stop everything.
-        let tracker = WindowTracker(windowEnumerator: windowEnumerator)
-        tracker.delegate = self
-        windowTracker = tracker
-        overlayManager.setupOverlays()
-        do {
-            try tracker.startTracking()
-        } catch {
-            NSLog("Dimsum: Failed to start window tracking: \(error)")
-            stopDimming()
-        }
-    }
-
-    private func stopDimming() {
-        windowTracker?.stopTracking()
-        windowTracker = nil
-        overlayManager.removeAllOverlays()
-    }
-
-    private func orderBehindFocusedWindow() {
-        guard preferences.isDimmingEnabled else { return }
-
-        if let windowID = currentFocusedWindowID {
-            let windows = windowEnumerator.visibleWindows()
-            if frontmostAppHasFullScreenWindow(in: windows) {
-                overlayManager.hideAllOverlays()
-                return
-            }
-            overlayManager.orderBehind(
-                windowID: windowID,
-                intensity: currentAdaptedIntensity,
-                animated: true
-            )
-        } else {
-            overlayManager.hideAllOverlays()
-        }
-    }
-
-    private func frontmostAppHasFullScreenWindow(in windows: [WindowInfo]) -> Bool {
-        guard let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier else {
-            return false
-        }
-        return windows.contains { $0.ownerPID == frontPID && isFullScreen($0) }
-    }
-
-    private func isFullScreen(_ window: WindowInfo) -> Bool {
-        for screen in NSScreen.screens {
-            if abs(window.bounds.width - screen.frame.width) < 2
-                && window.bounds.height >= screen.frame.height - 50 {
-                return true
-            }
-        }
-        return false
-    }
-
-    // MARK: - Preference Observation
-
-    private func observePreferences() {
-        cancellables.removeAll()
-
-        preferences.$dimmingIntensity
-            .dropFirst()
-            .debounce(for: .milliseconds(50), scheduler: RunLoop.main)
-            .sink { [weak self] _ in
-                guard let self else { return }
-                self.overlayManager.updateIntensity(self.currentAdaptedIntensity, animated: false)
-            }
-            .store(in: &cancellables)
-
-        preferences.$isDimmingEnabled
-            .dropFirst()
-            .sink { [weak self] enabled in
-                guard let self else { return }
-                if enabled {
-                    self.startDimming()
-                    self.orderBehindFocusedWindow()
-                } else {
-                    self.stopDimming()
-                }
-            }
-            .store(in: &cancellables)
-    }
-
-    // MARK: - System Events
-
-    private func observeSystemEvents() {
-        removeSystemEventObservers()
-
-        let spaceObserver = NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.activeSpaceDidChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            guard let self else { return }
-            self.spaceTransitionWork?.cancel()
-            self.isTransitioningSpaces = true
-            let work = DispatchWorkItem { [weak self] in
-                guard let self else { return }
-                self.isTransitioningSpaces = false
-                self.currentFocusedWindowID = nil
-                self.windowTracker?.refreshFocusedWindow()
-            }
-            self.spaceTransitionWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
-        }
-
-        // Wake and screen-parameter changes arrive together; rebuild once per burst.
-        let rebuildOverlays: (Notification) -> Void = { [weak self] _ in
-            guard let self else { return }
-            self.screenChangeWork?.cancel()
-            let work = DispatchWorkItem { [weak self] in
-                guard let self, self.windowTracker != nil else { return }
-                self.overlayManager.rebuildOverlays()
-                self.orderBehindFocusedWindow()
-            }
-            self.screenChangeWork = work
-            DispatchQueue.main.async(execute: work)
-        }
-
-        let screenObserver = NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification,
-            object: nil,
-            queue: .main,
-            using: rebuildOverlays
-        )
-
-        // Overlays can be torn down while displays are off during sleep, and no
-        // screen-parameter change is guaranteed once they come back.
-        let screenWakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.screensDidWakeNotification,
-            object: nil,
-            queue: .main,
-            using: rebuildOverlays
-        )
-
-        appearanceObservation = NSApp.observe(\.effectiveAppearance) { [weak self] _, _ in
-            guard let self else { return }
-            self.appearanceTransitionWork?.cancel()
-            let work = DispatchWorkItem { [weak self] in
-                guard let self, self.preferences.isDimmingEnabled else { return }
-                self.overlayManager.updateIntensity(self.currentAdaptedIntensity, animated: true)
-            }
-            self.appearanceTransitionWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: work)
-        }
-
-        workspaceObservers = [spaceObserver, screenWakeObserver]
-        defaultObservers = [screenObserver]
-    }
-
-    private func removeSystemEventObservers() {
-        for observer in workspaceObservers {
-            NSWorkspace.shared.notificationCenter.removeObserver(observer)
-        }
-        for observer in defaultObservers {
-            NotificationCenter.default.removeObserver(observer)
-        }
-        workspaceObservers.removeAll()
-        defaultObservers.removeAll()
-        appearanceObservation?.invalidate()
-        appearanceObservation = nil
-        appearanceTransitionWork?.cancel()
-        appearanceTransitionWork = nil
-        screenChangeWork?.cancel()
-        screenChangeWork = nil
-    }
-}
-
-// MARK: - WindowTrackerDelegate
-
-extension AppDelegate: WindowTrackerDelegate {
-    func accessibilityPermissionLost() {
-        stopDimming()
-        currentFocusedWindowID = nil
-        requestAccessibilityPermission()
-    }
-
-    func focusedWindowDidChange(to windowID: CGWindowID?) {
-        guard windowID != currentFocusedWindowID else { return }
-        currentFocusedWindowID = windowID
-        guard !isTransitioningSpaces else { return }
-
-        reorderWork?.cancel()
-        retryWork?.cancel()
-        if let windowID {
-            orderBehindFocusedWindow()
-            // Re-order after the window server finishes its activation animation,
-            // ensuring the overlay lands directly behind the focused window.
-            let work = DispatchWorkItem { [weak self] in
-                guard let self, self.currentFocusedWindowID == windowID else { return }
-                self.orderBehindFocusedWindow()
-            }
-            reorderWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: work)
-        } else {
-            // Window may not be in CG list yet; retry, then hide if still unresolved.
-            let work = DispatchWorkItem { [weak self] in
-                guard let self, self.currentFocusedWindowID == nil else { return }
-                self.windowTracker?.refreshFocusedWindow()
-                if self.currentFocusedWindowID == nil {
-                    self.overlayManager.hideAllOverlays()
-                }
-            }
-            retryWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
         }
     }
 }

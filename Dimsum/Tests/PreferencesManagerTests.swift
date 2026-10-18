@@ -1,3 +1,4 @@
+import Combine
 import XCTest
 @testable import Dimsum
 
@@ -57,5 +58,23 @@ final class PreferencesManagerTests: XCTestCase {
         prefs.dimmingIntensity = 0.7
         let stored = defaults.double(forKey: "dimsum.dimmingIntensity")
         XCTAssertEqual(stored, 0.7, accuracy: 0.001)
+    }
+
+    func testChangePublishersFireAfterTheValueIsStored() {
+        let prefs = PreferencesManager(defaults: defaults)
+        var seen: [String] = []
+        var subscriptions = Set<AnyCancellable>()
+        prefs.isDimmingEnabledDidChange
+            .sink { _ in seen.append("enabled=\(prefs.isDimmingEnabled)") }
+            .store(in: &subscriptions)
+        prefs.dimmingIntensityDidChange
+            .sink { _ in seen.append("intensity=\(prefs.dimmingIntensity)") }
+            .store(in: &subscriptions)
+
+        prefs.isDimmingEnabled = false
+        prefs.dimmingIntensity = 0.3
+        prefs.dimmingIntensity = 1.5
+
+        XCTAssertEqual(seen, ["enabled=false", "intensity=0.3", "intensity=0.8"])
     }
 }

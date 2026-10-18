@@ -10,6 +10,12 @@ final class PreferencesManager: ObservableObject, PreferencesManaging {
     static let loginKey = "dimsum.launchAtLogin"
     private static let hasLaunchedKey = "dimsum.hasLaunched"
 
+    // `$dimmingIntensity` and `$isDimmingEnabled` fire before the new value is
+    // stored, so code reading the property in a handler sees the old value.
+    // These fire after, with the stored value.
+    let dimmingIntensityDidChange = PassthroughSubject<Double, Never>()
+    let isDimmingEnabledDidChange = PassthroughSubject<Bool, Never>()
+
     @Published var dimmingIntensity: Double {
         didSet {
             let clamped = dimmingIntensity.clamped(to: 0.1...0.8)
@@ -18,12 +24,14 @@ final class PreferencesManager: ObservableObject, PreferencesManaging {
                 return
             }
             defaults.set(clamped, forKey: Self.intensityKey)
+            dimmingIntensityDidChange.send(clamped)
         }
     }
 
     @Published var isDimmingEnabled: Bool {
         didSet {
             defaults.set(isDimmingEnabled, forKey: Self.enabledKey)
+            isDimmingEnabledDidChange.send(isDimmingEnabled)
         }
     }
 
