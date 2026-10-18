@@ -134,8 +134,8 @@ func waitUntil(_ condition: () -> Bool) -> Bool {
     return true
 }
 
-/// Hosts a SwiftUI view in an on-screen window so its accessibility tree is
-/// built, the same tree VoiceOver and UI scripting see.
+/// Hosts a SwiftUI view in an on-screen window, so its controls can be found
+/// with findAccessibilityElement.
 func hostOnScreen<V: View>(_ view: V, size: NSSize = NSSize(width: 280, height: 400)) -> (NSWindow, NSView) {
     let hostingView = NSHostingView(rootView: view)
     let window = NSWindow(
@@ -150,9 +150,22 @@ func hostOnScreen<V: View>(_ view: V, size: NSSize = NSSize(width: 280, height: 
     return (window, hostingView)
 }
 
+/// AppKit builds SwiftUI's accessibility tree only once an Accessibility client
+/// has sent the app a request. Where none has (CI), a request from ourselves is
+/// enough. AppKit answers that it doesn't support this attribute, so nothing
+/// else changes.
+private let activateAccessibility: Void = {
+    _ = AXUIElementSetAttributeValue(
+        AXUIElementCreateApplication(getpid()),
+        "AXEnhancedUserInterface" as CFString,
+        kCFBooleanTrue
+    )
+}()
+
 /// Every accessibility element under `root`. SwiftUI's nodes are private types,
 /// so they are queried through dynamic lookup.
 func accessibilityElements(under root: AnyObject) -> [AnyObject] {
+    activateAccessibility
     var seen = Set<ObjectIdentifier>()
     var result: [AnyObject] = []
     func visit(_ element: AnyObject) {
