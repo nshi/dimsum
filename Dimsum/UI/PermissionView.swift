@@ -25,6 +25,10 @@ struct PermissionView: View {
             Text("After granting permission, Dimsum will start automatically.")
                 .font(.caption2)
                 .foregroundColor(.secondary)
+
+            Divider()
+
+            QuitButton()
         }
         .padding(20)
         .frame(width: 280)

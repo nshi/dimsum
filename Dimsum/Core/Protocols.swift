@@ -1,8 +1,18 @@
 import AppKit
+import ApplicationServices
 import CoreGraphics
 
 protocol WindowTrackerDelegate: AnyObject {
     func focusedWindowDidChange(to windowID: CGWindowID?)
+    func accessibilityPermissionLost()
+}
+
+protocol AccessibilityClient {
+    func copyAttributeValue(
+        _ element: AXUIElement,
+        _ attribute: String,
+        _ value: inout CFTypeRef?
+    ) -> AXError
 }
 
 protocol WindowTracking {

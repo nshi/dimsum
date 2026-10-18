@@ -13,7 +13,7 @@ going. Keep your attention on what matters.
 
 ## Install
 
-Download the latest release straight to `/Applications` from the terminal. Fetching via `curl` avoids the `com.apple.quarantine` xattr that browsers attach, so Gatekeeper won't block the unsigned app on launch:
+Download the latest release straight to `/Applications` from the terminal. Fetching via `curl` avoids the `com.apple.quarantine` xattr that browsers attach, so Gatekeeper won't block the app (which isn't notarized) on launch:
 
 ```bash
 curl -L https://github.com/nshi/dimsum/releases/latest/download/Dimsum.zip -o /tmp/Dimsum.zip && unzip -o /tmp/Dimsum.zip -d /Applications && rm /tmp/Dimsum.zip && open /Applications/Dimsum.app
@@ -23,7 +23,7 @@ On first launch:
 
 1. A menu bar icon (a small dim sum steamer basket) appears. There is no Dock icon.
 2. macOS prompts for **Accessibility permission** — grant it in System Settings > Privacy & Security > Accessibility.
-3. Restart the app after granting permission. Dimming activates automatically.
+3. Dimming starts on its own once permission is granted. If macOS later stops trusting the app, the permission prompt comes back, and dimming resumes after you grant it again.
 
 ## Usage
 
@@ -55,6 +55,19 @@ xcodebuild -scheme Dimsum -configuration Debug build
 open Dimsum.xcodeproj
 ```
 
+### Signing
+
+Builds are ad-hoc signed by default. macOS ties an ad-hoc app's Accessibility grant to the exact binary, so every rebuild silently loses it even though the toggle in System Settings stays on. To keep the grant across rebuilds, sign with a self-signed certificate:
+
+```bash
+scripts/create-signing-cert.sh
+xcodegen generate
+```
+
+Debug builds use their own bundle ID (`com.dimsum.app.debug`) and show up as "Dimsum Debug" in System Settings, so they don't take over the installed app's grant.
+
+The release workflow signs with the same certificate, read from the `MACOS_SIGNING_P12_BASE64` and `MACOS_SIGNING_P12_PASSWORD` repo secrets. The script writes both files to `build/signing/`.
+
 ### Tests
 
 ```bash
@@ -84,4 +97,4 @@ xcodebuild -exportArchive \
 
 To install, drag `build/release/Dimsum.app` into `/Applications`.
 
-> **Note:** The app is ad-hoc signed. If you copied the `.app` from a browser download or another machine, macOS Gatekeeper may block it on first launch — either right-click the app and choose "Open" to bypass, or strip the quarantine attribute with `xattr -dr com.apple.quarantine /Applications/Dimsum.app`.
+> **Note:** The app is not notarized. If you copied the `.app` from a browser download or another machine, macOS Gatekeeper may block it on first launch — either right-click the app and choose "Open" to bypass, or strip the quarantine attribute with `xattr -dr com.apple.quarantine /Applications/Dimsum.app`.

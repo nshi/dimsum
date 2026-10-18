@@ -9,9 +9,14 @@ final class WindowTracker: WindowTracking {
     private var workspaceObserver: NSObjectProtocol?
     fileprivate var resolveWork: DispatchWorkItem?
     private let windowEnumerator: WindowEnumerating
+    private let accessibility: AccessibilityClient
 
-    init(windowEnumerator: WindowEnumerating = WindowEnumerator()) {
+    init(
+        windowEnumerator: WindowEnumerating = WindowEnumerator(),
+        accessibility: AccessibilityClient = SystemAccessibilityClient()
+    ) {
         self.windowEnumerator = windowEnumerator
+        self.accessibility = accessibility
     }
 
     deinit {
@@ -124,11 +129,18 @@ final class WindowTracker: WindowTracking {
         let pid = app.processIdentifier
         let appElement = AXUIElementCreateApplication(pid)
         var focusedWindow: CFTypeRef?
-        let result = AXUIElementCopyAttributeValue(
+        let result = accessibility.copyAttributeValue(
             appElement,
-            kAXFocusedWindowAttribute as CFString,
+            kAXFocusedWindowAttribute,
             &focusedWindow
         )
+
+        // macOS can revoke trust mid-session (e.g. the binary changed), and every
+        // AX call fails from then on. Report it instead of silently falling back.
+        if result == .apiDisabled {
+            delegate?.accessibilityPermissionLost()
+            return
+        }
 
         if result == .success, let focusedWindow {
             let axWindow = focusedWindow as! AXUIElement
@@ -151,7 +163,7 @@ final class WindowTracker: WindowTracking {
 
     private func axPosition(of element: AXUIElement) -> CGPoint? {
         var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &value) == .success,
+        guard accessibility.copyAttributeValue(element, kAXPositionAttribute, &value) == .success,
               let value else { return nil }
         let axValue = value as! AXValue
         var point = CGPoint.zero
@@ -161,7 +173,7 @@ final class WindowTracker: WindowTracking {
 
     private func axSize(of element: AXUIElement) -> CGSize? {
         var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &value) == .success,
+        guard accessibility.copyAttributeValue(element, kAXSizeAttribute, &value) == .success,
               let value else { return nil }
         let axValue = value as! AXValue
         var size = CGSize.zero
@@ -185,6 +197,16 @@ final class WindowTracker: WindowTracking {
         return nil
     }
 
+}
+
+struct SystemAccessibilityClient: AccessibilityClient {
+    func copyAttributeValue(
+        _ element: AXUIElement,
+        _ attribute: String,
+        _ value: inout CFTypeRef?
+    ) -> AXError {
+        AXUIElementCopyAttributeValue(element, attribute as CFString, &value)
+    }
 }
 
 private func axCallback(

@@ -1,0 +1,6 @@
+// Ad-hoc signing by default, so a fresh clone builds without any certificate.
+// Ad-hoc builds lose the Accessibility grant on every rebuild. To keep it, run
+// scripts/create-signing-cert.sh, which writes Signing.local.xcconfig.
+CODE_SIGN_IDENTITY = -
+
+#include? "Signing.local.xcconfig"

@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var reorderWork: DispatchWorkItem?
     private var retryWork: DispatchWorkItem?
     private var appearanceTransitionWork: DispatchWorkItem?
+    private var screenChangeWork: DispatchWorkItem?
     private var appearanceObservation: NSKeyValueObservation?
 
     private var isDarkMode: Bool {
@@ -36,8 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if AXIsProcessTrusted() {
             enableDimming()
         } else {
-            showPermissionView()
-            startAccessibilityPolling()
+            requestAccessibilityPermission()
         }
     }
 
@@ -76,6 +76,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func requestAccessibilityPermission() {
+        showPermissionView()
+        guard accessibilityCheckTimer == nil else { return }
+        startAccessibilityPolling()
+    }
+
     private func showPermissionView() {
         popover.contentViewController = NSHostingController(
             rootView: PermissionView()
@@ -111,14 +117,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard preferences.isDimmingEnabled else { return }
         stopDimming()
 
+        // Assign state before starting: startTracking can report lost permission
+        // synchronously, and that handler must be able to stop everything.
+        let tracker = WindowTracker(windowEnumerator: windowEnumerator)
+        tracker.delegate = self
+        windowTracker = tracker
+        overlayManager.setupOverlays()
         do {
-            let tracker = WindowTracker(windowEnumerator: windowEnumerator)
-            tracker.delegate = self
             try tracker.startTracking()
-            windowTracker = tracker
-            overlayManager.setupOverlays()
         } catch {
             NSLog("Dimsum: Failed to start window tracking: \(error)")
+            stopDimming()
         }
     }
 
@@ -167,6 +176,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Preference Observation
 
     private func observePreferences() {
+        cancellables.removeAll()
+
         preferences.$dimmingIntensity
             .dropFirst()
             .debounce(for: .milliseconds(50), scheduler: RunLoop.main)
@@ -213,15 +224,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
         }
 
+        // Wake and screen-parameter changes arrive together; rebuild once per burst.
+        let rebuildOverlays: (Notification) -> Void = { [weak self] _ in
+            guard let self else { return }
+            self.screenChangeWork?.cancel()
+            let work = DispatchWorkItem { [weak self] in
+                guard let self, self.windowTracker != nil else { return }
+                self.overlayManager.rebuildOverlays()
+                self.orderBehindFocusedWindow()
+            }
+            self.screenChangeWork = work
+            DispatchQueue.main.async(execute: work)
+        }
+
         let screenObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            guard let self else { return }
-            self.overlayManager.rebuildOverlays()
-            self.orderBehindFocusedWindow()
-        }
+            queue: .main,
+            using: rebuildOverlays
+        )
+
+        // Overlays can be torn down while displays are off during sleep, and no
+        // screen-parameter change is guaranteed once they come back.
+        let screenWakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.screensDidWakeNotification,
+            object: nil,
+            queue: .main,
+            using: rebuildOverlays
+        )
 
         appearanceObservation = NSApp.observe(\.effectiveAppearance) { [weak self] _, _ in
             guard let self else { return }
@@ -234,7 +264,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: work)
         }
 
-        workspaceObservers = [spaceObserver]
+        workspaceObservers = [spaceObserver, screenWakeObserver]
         defaultObservers = [screenObserver]
     }
 
@@ -251,12 +281,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appearanceObservation = nil
         appearanceTransitionWork?.cancel()
         appearanceTransitionWork = nil
+        screenChangeWork?.cancel()
+        screenChangeWork = nil
     }
 }
 
 // MARK: - WindowTrackerDelegate
 
 extension AppDelegate: WindowTrackerDelegate {
+    func accessibilityPermissionLost() {
+        stopDimming()
+        currentFocusedWindowID = nil
+        requestAccessibilityPermission()
+    }
+
     func focusedWindowDidChange(to windowID: CGWindowID?) {
         guard windowID != currentFocusedWindowID else { return }
         currentFocusedWindowID = windowID

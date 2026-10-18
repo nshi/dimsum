@@ -41,10 +41,7 @@ struct PopoverView: View {
 
             Divider()
 
-            Button("Quit Dimsum") {
-                NSApplication.shared.terminate(nil)
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
+            QuitButton()
         }
         .padding(16)
         .frame(width: 280)
